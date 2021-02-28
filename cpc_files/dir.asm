@@ -1,5 +1,7 @@
 ; dir - list all available files
 
+UseTestData   equ 1                ; 1 - use test data; 0 - use real IO 
+
 PrintChar     equ &BB5A
 WaitChar      equ &BB06
 
@@ -30,12 +32,15 @@ Finish:
 	
 	ret                            ; end program
 
+#if UseTestData
+SendByte:
+	jp TestSendByte
 SendControlByte:
-	jp DoSendControlByte
+	ret
 RecvByte:
-	jp DoRecvByte
+	jp TestRecvByte
 RecvControlByte:
-	jp DoRecvControlByte
+	jp TestRecvControlByte
 
 ; Test Routine for sending message - does nothing
 TestSendByte:
@@ -75,6 +80,15 @@ TestRecvControlByte:
 	ld a, 1						   ; return a with 1
 	ret
 
+#else
+
+SendControlByte:
+	jp DoSendControlByte
+RecvByte:
+	jp DoRecvByte
+RecvControlByte:
+	jp DoRecvControlByte
+
 DoSendControlByte:
 	ld c, &d1                      ; Load C with low port byte
 	ld b, &fb                      ; Load D with high port byte
@@ -92,6 +106,8 @@ DoRecvControlByte:
 	in a, (&d1)                    ; Read byte from IO control port
 
 	ret
+
+#endif
 
 ; Receive file name in the form: XXXXXXXXEEESF where: 
 ;   - X represents filename chars, 
@@ -228,6 +244,7 @@ FileSizeDec:
 Count:
 	db 0
 
+#if UseTestData
 TestData:
 	db 'FILEA   BAS',3,'FILEB   BIN',12,'BRUNO   BAS',1,'CONDE   BIN',5
 
@@ -236,3 +253,4 @@ TestDataPos:
 
 TestDataCount:
 	db 0
+#endif

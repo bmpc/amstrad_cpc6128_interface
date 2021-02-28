@@ -2,7 +2,7 @@
 #include <SPI.h>
 #include <SD.h>
 
-#define DEBUG 1 // debug on USB Serial
+//#define DEBUG 1 // debug on USB Serial
 
 #ifdef DEBUG
   #define DEBUG_PRINT(x)  Serial.print (x)
@@ -41,14 +41,14 @@
 #define BRST   35 // PC2
 #define ADDR_0 34 // PC3
 
-#define FILE_BUFFER 512
+#define FILE_BUFFER 128
 
 #define CMD_DIR 1
-#define CMD_GETFILE 2
+#define CMD_COPY 2
 
 volatile byte iorequest = 0;
 
-byte cmd = 0; // current command: 1 - dir() ; 2 - getFile()
+byte cmd = 0; // current command: 1 - dir() ; 2 - copy()
 
 class FileBuffer {
   char mFilename[12];
@@ -65,8 +65,10 @@ class FileBuffer {
     mFile = SD.open(mFilename);
     if (mFile && mFile.available()) {
       mFileSize = mFile.size();
-      DEBUG_PRINT("Opening file - ");
-      DEBUG_PRINTLN(mFilename);
+      DEBUG_PRINT("Opening file '");
+      DEBUG_PRINT(mFilename);
+      DEBUG_PRINT("' with size = ");
+      DEBUG_PRINTLN(mFileSize);
       return true;
     } else {
       DEBUG_PRINT("File not found - ");
@@ -98,26 +100,35 @@ public:
   }
 
   byte getNextByte() {
-    if (mReady && mFileCursor < mFileSize) {
+    if (mReady && (mFileCursor < (mFileSize + 2))) { // +2 from file size word
       // add file size on the first 2 bytes
-      if (mFileCursor == 0) {
-        mBuffer[mBufferIndex++] = (uint8_t) (mFileSize >> 8); // high byte
-        mBuffer[mBufferIndex++] = (uint8_t) (mFileSize & 0x00FF); // low byte
-      }
-
+      
       if (mFileCursor == 0 || mBufferIndex == FILE_BUFFER) {
+        DEBUG_PRINT("Buffering file content. Current Position: ");
+        mBufferIndex = 0;
+        DEBUG_PRINTLN(mFileCursor);
         mFile.read(mBuffer, FILE_BUFFER); // fill buffer
       }
 
+      byte b;
+      if (mFileCursor == 0) {
+        b = (uint8_t) (mFileSize >> 8); // high byte
+      } else if (mFileCursor == 1) {
+        b = (uint8_t) (mFileSize & 0x00FF); // low byte
+      } else {
+        b = mBuffer[mBufferIndex++];  
+      }
+
       mFileCursor++;
-      return mBuffer[mBufferIndex++];
+      return b;
     } else {
+      DEBUG_PRINTLN("Error - no more data!");
       return 0;
     }
   }
 
   bool hasMoreBytes() {
-    return mFileCursor < mFileSize;
+    return mFileCursor < (mFileSize + 2);
   }
 
   void init() {
@@ -164,7 +175,7 @@ public:
   }
 };
 
-// File Iterator to send filenames to CPC. It keeps the state of the what was already sent and the current file.
+// File iterator to send filenames to CPC. It keeps the state of the what was already sent and the current file.
 class FileIterator {
 private:
   File mRoot;
@@ -251,7 +262,7 @@ public:
   }
 };
 
-FileIterator iter;
+FileIterator fileIterator;
 FileBuffer fileBuffer;
 
 void setup() {
@@ -322,14 +333,18 @@ void writeToControlPort() {
 
   switch(cmd) {
     case CMD_DIR:
-      byte_to_send = iter.hasBytes() ? 1 : 0;
+      byte_to_send = fileIterator.hasBytes() ? 1 : 0;
 
       if (byte_to_send == 0) {
-        iter.release();
+        fileIterator.release();
       }
       break;
-    case CMD_GETFILE:
+    case CMD_COPY:
       byte_to_send = fileBuffer.exists() ? 1 : 0;
+
+      if (!fileBuffer.exists()) {
+        fileBuffer.reset();
+      }
 
       break;
     default:
@@ -353,11 +368,11 @@ void readControlPort() {
   switch(cmd) {
     case CMD_DIR:
       DEBUG_PRINTLN("Received CPC command [DIR]");
-      iter.init(SD.open("/"));
+      fileIterator.init(SD.open("/"));
       
       break;
-   case CMD_GETFILE:
-      DEBUG_PRINTLN("Received CPC command [GETFILE]");
+   case CMD_COPY:
+      DEBUG_PRINTLN("Received CPC command [COPY]");
       break;
     default:
       break; 
@@ -369,12 +384,12 @@ void readControlPort() {
 void writeToDataPort() {
   DEBUG_PRINTLN("Writing to Data Port...");
       
-  char byte_to_send;
+  byte byte_to_send;
   switch(cmd) {
     case CMD_DIR:
-      byte_to_send = iter.nextByte();
+      byte_to_send = fileIterator.nextByte();
       break;
-    case CMD_GETFILE:
+    case CMD_COPY:
       byte_to_send = fileBuffer.getNextByte();
 
       if (!fileBuffer.hasMoreBytes()) {
@@ -398,7 +413,7 @@ void readDataPort() {
 
   byte b = readByte();
   
-  if (cmd == CMD_GETFILE) {
+  if (cmd == CMD_COPY) {
     DEBUG_PRINT("[DATA] --> 0x");
     DEBUG_PRINTLN_HEX(b);
 
