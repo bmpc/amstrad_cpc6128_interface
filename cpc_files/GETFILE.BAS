@@ -1,0 +1,15 @@
+10 MEMORY &7FFF
+20 addr = &8000
+30 INPUT "Enter file name";n$
+40 l=LEN(n$)
+50 IF l>12 THEN 140
+60 POKE addr, l
+70 FOR i=1 TO l
+80 c$=MID$(n$,i,1)
+90 POKE addr+i, ASC(c$)
+100 NEXT i
+110 LOAD "GETFILE.BIN"
+120 CALL &8100
+130 END
+140 PRINT "Invalid!"
+150 GOTO 20 

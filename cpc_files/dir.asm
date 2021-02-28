@@ -6,8 +6,8 @@ WaitChar      equ &BB06
 	org &8000
 
 SendDirCmd:
-	ld a, %00000001                ; Load DIR cmd into accumulator
-	call SendByte                  ; Send DIR command
+	ld a, 1                        ; Load DIR cmd into accumulator
+	call SendControlByte           ; Send DIR command
 
 
 NextFile:
@@ -30,8 +30,8 @@ Finish:
 	
 	ret                            ; end program
 
-SendByte:
-	jp DoSendByte
+SendControlByte:
+	jp DoSendControlByte
 RecvByte:
 	jp DoRecvByte
 RecvControlByte:
@@ -75,7 +75,7 @@ TestRecvControlByte:
 	ld a, 1						   ; return a with 1
 	ret
 
-DoSendByte:
+DoSendControlByte:
 	ld c, &d1                      ; Load C with low port byte
 	ld b, &fb                      ; Load D with high port byte
 	out (c), a                     ; Send DIR cmd

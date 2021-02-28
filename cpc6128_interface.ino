@@ -75,14 +75,6 @@ class FileBuffer {
     }
   }
 
-  fillBuffer() {
-    int i = 0;
-    while (mFile.available() && i < FILE_BUFFER) {
-      *(mBuffer + i) = mFile.read();
-      i++;
-    }
-  }
-
 public:
   FileBuffer() {
   }
@@ -114,7 +106,7 @@ public:
       }
 
       if (mFileCursor == 0 || mBufferIndex == FILE_BUFFER) {
-        fillBuffer();
+        mFile.read(mBuffer, FILE_BUFFER); // fill buffer
       }
 
       mFileCursor++;
