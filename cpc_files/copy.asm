@@ -1,4 +1,4 @@
-; getfile - transfers a file from Arduino to CPC
+; copy - transfers a file from Arduino to CPC
 
 UseTestData    equ 0                ; 1 - use test data; 0 - use real IO 
 
@@ -169,7 +169,7 @@ DoRecvControlByte:
 	in a, (&d1)                    ; Read byte from IO control port
 
 	ret
-	
+
 #endif
 
 FileNotFound:

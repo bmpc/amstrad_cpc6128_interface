@@ -1,6 +1,6 @@
 ; dir - list all available files
 
-UseTestData   equ 1                ; 1 - use test data; 0 - use real IO 
+UseTestData   equ 0                ; 1 - use test data; 0 - use real IO 
 
 PrintChar     equ &BB5A
 WaitChar      equ &BB06
