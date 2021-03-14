@@ -103,7 +103,7 @@ This repository contains the following source files:
  - Creating a PCB based on an Arduino shield to make this project final and remove the breadboard (now covered in dust) from the back of my CPC.  
  - Support ".DSK" image files directly in the SD card
 
-## Reference work
+## Reference
 
  - [Universal Serial Interface for Amstrad CPC (a.k.a USIfAC)](http://retroworkbench.blogspot.com/p/universal-serial-interface-for-amstrad.html)
  - [Arduino IO card for the CPC6128](https://hackaday.io/project/169565-arduino-io-card-for-amstrad-cpc-6128)
